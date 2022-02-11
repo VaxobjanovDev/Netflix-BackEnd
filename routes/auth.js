@@ -11,11 +11,12 @@ router.post("/register", async (req, res) => {
       req.body.password,
       process.env.SECRET_KEY
     ).toString(),
+    admin: req.body.admin,
   });
   try {
     const user = await newUser.save();
     res.status(201).json(user);
-  } catch {
+  } catch(err){
     res.status(500).json(err);
   }
 });
@@ -40,8 +41,8 @@ router.post("/login", async (req, res) => {
     const { password, ...info } = user._doc;
 
     res.status(200).json({ ...info, accesToken });
-  } catch {
-    res.status(500).json("err");
+  } catch(err) {
+    res.status(500).json(err);
   }
 });
 
