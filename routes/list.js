@@ -1,15 +1,15 @@
 const router = require("express").Router();
-const Movies = require("../models/Movies");
+const List = require("../models/List");
 const verify = require("../verifyJWToken");
 
 // Post
 
-router.post("/movies", async (req, res) => {
+router.post("/", verify, async (req, res) => {
   if (req.user.admin) {
-    const newMovie = await Movies(req.body);
+    const newList = new List(req.body);
     try {
-      const savedMovie = await newMovie.save();
-      res.status(201).json(savedMovie);
+      const savedList = await newList.save();
+      res.status(201).json(savedList);
     } catch {
       res.status(500).json("Server error");
     }
@@ -18,18 +18,19 @@ router.post("/movies", async (req, res) => {
   }
 });
 
-// Update
-router.put("/:id", async (req, res) => {
+// Put
+
+router.put("/:id", verify, async (req, res) => {
   if (req.user.admin) {
     try {
-      const updatedMovie = await Movies.findByIdAndUpdate(
+      const updatedList = await List.findByIdAndUpdate(
         req.params.id,
         {
           $set: req.body,
         },
         { new: true }
       );
-      res.status(200).json(savedMovie);
+      res.status(200).json(updatedList);
     } catch {
       res.status(500).json("Server error");
     }
@@ -39,11 +40,11 @@ router.put("/:id", async (req, res) => {
 });
 
 // Delete
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verify, async (req, res) => {
   if (req.user.admin) {
     try {
-      await Movies.findByIdAndDelete(req.params.id);
-      res.status(200).json("Movie has been deleted");
+      await List.findByIdAndDelete(req.params.id);
+      res.status(201).json("List has been deleted");
     } catch {
       res.status(500).json("Server error");
     }
@@ -53,49 +54,31 @@ router.delete("/:id", async (req, res) => {
 });
 
 // Get
-router.get("/:id", verify, async (req, res) => {
-  try {
-    const movie = await Movies.findById(req.params.id);
-    res.status(200).json(movie);
-  } catch {
-    res.status(500).json("Server error");
-  }
-});
-
-// Get Random
-router.get("/random", verify, async (req, res) => {
-  const type = req.query.type;
-  let movie;
-  try {
-    if (type === "series") {
-      movie = await Movies.aggregate([
-        { $match: { isSeries: true } },
-        { $sample: { size: 1 } },
-      ]);
-    } else {
-      movie = await Movies.aggregate([
-        { $match: { isSeries: false } },
-        { $sample: { size: 1 } },
-      ]);
-    }
-    res.status(200).json(movie);
-  } catch (err) {
-    res.status(500).json(err);
-  }
-});
-
-// Get All movies
-
 router.get("/", verify, async (req, res) => {
-  if (req.user.admin) {
-    try {
-      const movie = await Movies.find();
-      res.status(200).json(movie);
-    } catch {
-      res.status(500).json("Server error");
+  const typeQuery = req.query.type;
+  const genreQuery = req.query.genre;
+  let list = [];
+  try {
+    if (typeQuery) {
+      if (genreQuery) {
+        list = await List.aggregate([
+          { $sample: { size: 10 } },
+          { $match: { type: typeQuery, genre: genreQuery } },
+        ]);
+      } else {
+        list = await List.aggregate([
+          { $sample: { size: 10 } },
+          { $match: { type: typeQuery } },
+        ]);
+      }
+    } else {
+      list = await List.aggregate([{ $sample: { size: 10 } }]);
     }
-  } else {
-    res.status(403).json("You are not allowed");
+    console.log("Be happy");
+    res.status(200).json(list);
+  } catch (err) {
+    console.log("Be happy");
+    res.status(500).json(err);
   }
 });
 
