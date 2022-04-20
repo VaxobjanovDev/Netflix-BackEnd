@@ -1,12 +1,12 @@
 const router = require("express").Router();
-const Movies = require("../models/Movies");
+const Movie = require("../models/Movies");
 const verify = require("../verifyJWToken");
 
 // Post
 
-router.post("/movies", async (req, res) => {
+router.post("/", verify, async (req, res) => {
   if (req.user.admin) {
-    const newMovie = await Movies(req.body);
+    const newMovie = new Movie(req.body);
     try {
       const savedMovie = await newMovie.save();
       res.status(201).json(savedMovie);
@@ -22,14 +22,14 @@ router.post("/movies", async (req, res) => {
 router.put("/:id", async (req, res) => {
   if (req.user.admin) {
     try {
-      const updatedMovie = await Movies.findByIdAndUpdate(
+      const updatedMovie = await Movie.findByIdAndUpdate(
         req.params.id,
         {
           $set: req.body,
         },
         { new: true }
       );
-      res.status(200).json(savedMovie);
+      res.status(200).json(updatedMovie);
     } catch {
       res.status(500).json("Server error");
     }
@@ -39,10 +39,10 @@ router.put("/:id", async (req, res) => {
 });
 
 // Delete
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verify, async (req, res) => {
   if (req.user.admin) {
     try {
-      await Movies.findByIdAndDelete(req.params.id);
+      await Movie.findByIdAndDelete(req.params.id);
       res.status(200).json("Movie has been deleted");
     } catch {
       res.status(500).json("Server error");
@@ -53,9 +53,9 @@ router.delete("/:id", async (req, res) => {
 });
 
 // Get
-router.get("/:id", verify, async (req, res) => {
+router.get("/find/:id", verify, async (req, res) => {
   try {
-    const movie = await Movies.findById(req.params.id);
+    const movie = await Movie.findById(req.params.id);
     res.status(200).json(movie);
   } catch {
     res.status(500).json("Server error");
@@ -68,12 +68,12 @@ router.get("/random", verify, async (req, res) => {
   let movie;
   try {
     if (type === "series") {
-      movie = await Movies.aggregate([
+      movie = await Movie.aggregate([
         { $match: { isSeries: true } },
         { $sample: { size: 1 } },
       ]);
     } else {
-      movie = await Movies.aggregate([
+      movie = await Movie.aggregate([
         { $match: { isSeries: false } },
         { $sample: { size: 1 } },
       ]);
@@ -89,8 +89,8 @@ router.get("/random", verify, async (req, res) => {
 router.get("/", verify, async (req, res) => {
   if (req.user.admin) {
     try {
-      const movie = await Movies.find();
-      res.status(200).json(movie);
+      const movie = await Movie.find();
+      res.status(200).json(movie.reverse());
     } catch {
       res.status(500).json("Server error");
     }
